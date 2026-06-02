@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Serial Scanner</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; min-height: 100vh; padding: 1rem; color: #1a1a1a; }
+#app { max-width: 420px; margin: 0 auto; }
+h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #888; margin-bottom: 1.25rem; }
+#status-bar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; margin-bottom: 1rem; }
+#status-dot { width: 8px; height: 8px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; }
+#capture-zone { border: 1px solid #e0e0e0; border-radius: 12px; background: #fff; overflow: hidden; margin-bottom: 1rem; }
+#preview-area { width: 100%; height: 200px; background: #f0f0f0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; position: relative; overflow: hidden; }
+#preview-area img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+#preview-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+#preview-placeholder svg { opacity: 0.3; }
+#preview-placeholder span { font-size: 13px; color: #999; }
+#capture-controls { padding: 12px 16px; }
+#capture-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; background: #1a1a1a; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; color: #fff; }
+#capture-btn:active { transform: scale(0.98); opacity: 0.9; }
+#file-input { display: none; }
+#ocr-section { padding: 0 16px 16px; display: none; }
+#ocr-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+#serial-input { width: 100%; padding: 11px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; font-family: 'SF Mono', 'Fira Code', monospace; letter-spacing: 0.05em; color: #1a1a1a; background: #fafafa; }
+#serial-input:focus { outline: none; border-color: #1a1a1a; background: #fff; }
+#serial-match { font-size: 12px; margin-top: 6px; display: none; }
+#confirm-btn { width: 100%; margin-top: 10px; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; display: none; }
+#confirm-btn.ready { display: block; background: #1D9E75; color: #fff; }
+#confirm-btn:active { transform: scale(0.98); }
+#log-section { margin-top: 1rem; }
+#log-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+#log-title { font-size: 13px; font-weight: 600; color: #555; }
+#export-btn { font-size: 12px; padding: 5px 10px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; color: #333; }
+#log-empty { font-size: 13px; color: #bbb; text-align: center; padding: 1.5rem 0; border: 1px dashed #e0e0e0; border-radius: 8px; }
+#log-list { display: flex; flex-direction: column; gap: 6px; }
+.log-row { background: #fff; border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; }
+.log-serial { font-size: 14px; font-family: 'SF Mono', 'Fira Code', monospace; color: #1a1a1a; }
+.log-meta { font-size: 11px; color: #aaa; }
+.log-new { border-color: #1D9E75; }
+#sync-status { font-size: 12px; margin-top: 4px; color: #888; min-height: 16px; }
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(40px); background: #1a1a1a; color: #fff; font-size: 13px; padding: 10px 18px; border-radius: 8px; opacity: 0; transition: all 0.25s; pointer-events: none; white-space: nowrap; z-index: 999; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Serial Scanner</h1>
+  <p class="subtitle">Toybox 3D Printer returns</p>
+
+  <div id="status-bar">
+    <div id="status-dot"></div>
+    <span id="status-text">Ready to scan</span>
+  </div>
+
+  <div id="capture-zone">
+    <div id="preview-area">
+      <div id="preview-placeholder">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>No image yet</span>
+      </div>
+    </div>
+    <div id="capture-controls">
+      <button id="capture-btn" onclick="document.getElementById('file-input').click()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Take photo / upload image
+      </button>
+      <input type="file" id="file-input" accept="image/*" capture="environment">
+    </div>
+    <div id="ocr-section">
+      <div id="ocr-label">Serial number detected — confirm or edit:</div>
+      <input type="text" id="serial-input" placeholder="TBA12345CB000000" maxlength="16" oninput="validateSerial()">
+      <div id="serial-match"></div>
+      <div id="sync-status"></div>
+      <button id="confirm-btn" onclick="logSerial()">Log serial number</button>
+    </div>
+  </div>
+
+  <div id="log-section">
+    <div id="log-header">
+      <span id="log-title">Logged serials (<span id="log-count">0</span>)</span>
+      <button id="export-btn" onclick="exportCSV()">Export CSV</button>
+    </div>
+    <div id="log-empty">No serials logged yet</div>
+    <div id="log-list"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+<script>
+// ─── PASTE YOUR GOOGLE APPS SCRIPT URL HERE ───────────────────────────────
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz32JDOFqnGRjj_gtEVxAp4VKMLMB3cH_60dbl-EN5fdnMKm3UfRmx3rGKfUt-um9hR5A/exec';
+// ──────────────────────────────────────────────────────────────────────────
+
+const SERIAL_RE = /TBA\d{5}CB\d{6}/i;
+let log = JSON.parse(localStorage.getItem('serial_log') || '[]');
+
+function setStatus(text, color) {
+  document.getElementById('status-text').textContent = text;
+  document.getElementById('status-dot').style.background = color || '#1D9E75';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+document.getElementById('file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  document.getElementById('preview-area').innerHTML = `<img src="${url}" alt="Captured label">`;
+  setStatus('Reading image...', '#F0C040');
+  document.getElementById('ocr-section').style.display = 'block';
+  document.getElementById('serial-input').value = '';
+  document.getElementById('confirm-btn').className = '';
+  document.getElementById('serial-match').style.display = 'none';
+  document.getElementById('sync-status').textContent = '';
+  try {
+    const result = await Tesseract.recognize(url, 'eng', { logger: () => {} });
+    const text = result.data.text.replace(/\s/g, '');
+    const match = text.match(SERIAL_RE);
+    if (match) {
+      document.getElementById('serial-input').value = match[0].toUpperCase();
+      setStatus('Serial found — confirm to log', '#1D9E75');
+    } else {
+      setStatus('Not found — enter manually', '#E09020');
+    }
+    validateSerial();
+  } catch {
+    setStatus('OCR failed — enter manually', '#E09020');
+  }
+  e.target.value = '';
+});
+
+function validateSerial() {
+  const val = document.getElementById('serial-input').value.trim().toUpperCase();
+  const matchEl = document.getElementById('serial-match');
+  const btn = document.getElementById('confirm-btn');
+  if (SERIAL_RE.test(val)) {
+    matchEl.style.display = 'block';
+    matchEl.style.color = '#1D9E75';
+    matchEl.textContent = '✓ Valid format';
+    btn.className = 'ready';
+    btn.textContent = `Log  ${val}`;
+  } else if (val.length > 0) {
+    matchEl.style.display = 'block';
+    matchEl.style.color = '#E09020';
+    matchEl.textContent = 'Format: TBA12345CB000000 (16 chars)';
+    btn.className = '';
+  } else {
+    matchEl.style.display = 'none';
+    btn.className = '';
+  }
+}
+
+async function logSerial() {
+  const val = document.getElementById('serial-input').value.trim().toUpperCase();
+  if (!SERIAL_RE.test(val)) return;
+  const now = new Date();
+  const entry = {
+    serial: val,
+    time: now.toISOString(),
+    display: now.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  };
+  log.unshift(entry);
+  localStorage.setItem('serial_log', JSON.stringify(log));
+  document.getElementById('serial-input').value = '';
+  document.getElementById('confirm-btn').className = '';
+  document.getElementById('serial-match').style.display = 'none';
+  document.getElementById('preview-area').innerHTML = `<div id="preview-placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Ready for next</span></div>`;
+  setStatus('Logged! Ready for next scan', '#1D9E75');
+  renderLog(val);
+  showToast(`Logged ${val}`);
+
+  if (SHEET_URL && SHEET_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    document.getElementById('sync-status').textContent = 'Syncing to sheet...';
+    try {
+      await fetch(SHEET_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serial: val, timestamp: now.toISOString() })
+      });
+      document.getElementById('sync-status').textContent = '✓ Saved to Google Sheet';
+    } catch {
+      document.getElementById('sync-status').textContent = '⚠ Sheet sync failed — saved locally';
+    }
+  }
+}
+
+function renderLog(newSerial) {
+  document.getElementById('log-count').textContent = log.length;
+  const empty = document.getElementById('log-empty');
+  const list = document.getElementById('log-list');
+  if (!log.length) { empty.style.display = 'block'; list.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  list.innerHTML = log.map((e, i) =>
+    `<div class="log-row${i === 0 && e.serial === newSerial ? ' log-new' : ''}">
+      <span class="log-serial">${e.serial}</span>
+      <span class="log-meta">${e.display}</span>
+    </div>`
+  ).join('');
+}
+
+function exportCSV() {
+  if (!log.length) { showToast('Nothing to export yet'); return; }
+  const csv = 'Serial,Timestamp\n' + log.map(e => `${e.serial},${e.time}`).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `serials_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('CSV exported');
+}
+
+renderLog();
+</script>
+</body>
+</html>
