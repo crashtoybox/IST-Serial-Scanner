@@ -93,10 +93,11 @@ h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 <script>
 // ─── PASTE YOUR GOOGLE APPS SCRIPT URL HERE ───────────────────────────────
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz32JDOFqnGRjj_gtEVxAp4VKMLMB3cH_60dbl-EN5fdnMKm3UfRmx3rGKfUt-um9hR5A/exec';
+const SHEET_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
 // ──────────────────────────────────────────────────────────────────────────
 
-const SERIAL_RE = /TBA\d{5}CB\d{6}/i;
+const SERIAL_RE = /TBA\d{5}\s?CB\d{6}/i;
+const SERIAL_CLEAN = /TBA\d{5}CB\d{6}/i;
 let log = JSON.parse(localStorage.getItem('serial_log') || '[]');
 
 function setStatus(text, color) {
@@ -124,10 +125,11 @@ document.getElementById('file-input').addEventListener('change', async (e) => {
   document.getElementById('sync-status').textContent = '';
   try {
     const result = await Tesseract.recognize(url, 'eng', { logger: () => {} });
-    const text = result.data.text.replace(/\s/g, '');
-    const match = text.match(SERIAL_RE);
+    const raw = result.data.text;
+    const text = raw.replace(/\s/g, '');
+    const match = text.match(SERIAL_RE) || raw.match(SERIAL_RE);
     if (match) {
-      document.getElementById('serial-input').value = match[0].toUpperCase();
+      document.getElementById('serial-input').value = match[0].replace(/\s/, '').toUpperCase();
       setStatus('Serial found — confirm to log', '#1D9E75');
     } else {
       setStatus('Not found — enter manually', '#E09020');
