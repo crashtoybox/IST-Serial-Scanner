@@ -93,7 +93,7 @@ h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 <script>
 // ─── PASTE YOUR GOOGLE APPS SCRIPT URL HERE ───────────────────────────────
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzdZqkR7FVZzHLI4GodvGR78-9yxaX1iglbhb9H5_rvin-OgiC2Hq_Se9Y1d7PGnQxHVg/exec';
+const SHEET_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
 // ──────────────────────────────────────────────────────────────────────────
 
 const SERIAL_RE = /TBA\d{5}\s?CB\d{6}/i;
@@ -181,14 +181,13 @@ async function logSerial() {
   renderLog(val);
   showToast(`Logged ${val}`);
 
-  if (SHEET_URL && SHEET_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+  if (SHEET_URL && SHEET_URL !== 'https://script.google.com/macros/s/AKfycbwVE2o4ENBaGrinRoJT2A2qZI59epVpU_025BQECJFo_7l0O19UiHZPeJ-J1o8rYI09wA/exec') {
     document.getElementById('sync-status').textContent = 'Syncing to sheet...';
     try {
-      await fetch(SHEET_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serial: val, timestamp: now.toISOString() })
+      const params = new URLSearchParams({ serial: val, timestamp: now.toISOString() });
+      await fetch(SHEET_URL + '?' + params.toString(), {
+        method: 'GET',
+        mode: 'no-cors'
       });
       document.getElementById('sync-status').textContent = '✓ Saved to Google Sheet';
     } catch {
