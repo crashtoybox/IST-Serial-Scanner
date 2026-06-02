@@ -93,7 +93,7 @@ h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 <script>
 // ─── PASTE YOUR GOOGLE APPS SCRIPT URL HERE ───────────────────────────────
-const SHEET_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwVE2o4ENBaGrinRoJT2A2qZI59epVpU_025BQECJFo_7l0O19UiHZPeJ-J1o8rYI09wA/exec';
 // ──────────────────────────────────────────────────────────────────────────
 
 const SERIAL_RE = /TBA\d{5}\s?CB\d{6}/i;
@@ -181,7 +181,7 @@ async function logSerial() {
   renderLog(val);
   showToast(`Logged ${val}`);
 
-  if (SHEET_URL && SHEET_URL !== 'https://script.google.com/macros/s/AKfycbwVE2o4ENBaGrinRoJT2A2qZI59epVpU_025BQECJFo_7l0O19UiHZPeJ-J1o8rYI09wA/exec') {
+  if (SHEET_URL && SHEET_URL !== 'YOUR_APPS_SCRIPT_URL_HERE') {
     document.getElementById('sync-status').textContent = 'Syncing to sheet...';
     try {
       const params = new URLSearchParams({ serial: val, timestamp: now.toISOString() });
